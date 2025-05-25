@@ -19,9 +19,13 @@
 
     <script type="text/javascript">
         let rollershutters = [];
+        let globalOnChange = null; // Store the onChange callback globally
 
         function load(settings, onChange) {
             if (!settings) return;
+
+            // Store onChange callback globally so table functions can use it
+            globalOnChange = onChange;
 
             // Load serial connection settings
             $('.value').each(function () {
@@ -70,11 +74,11 @@
             rollershutters.forEach((shutter, index) => {
                 const row = $(`
                     <tr>
-                        <td><input type="text" value="${shutter.name}" onchange="updateRollershutter(${index}, 'name', this.value)"></td>
+                        <td><input type="text" value="${shutter.name}" onchange="updateRollershutter(${index}, 'name', this.value)" onkeyup="updateRollershutter(${index}, 'name', this.value)"></td>
                         <td><input type="number" min="1" max="16" value="${shutter.id}" onchange="updateRollershutter(${index}, 'id', this.value)"></td>
-                        <td><input type="text" value="${shutter.openCommand}" onchange="updateRollershutter(${index}, 'openCommand', this.value)"></td>
-                        <td><input type="text" value="${shutter.closeCommand}" onchange="updateRollershutter(${index}, 'closeCommand', this.value)"></td>
-                        <td><input type="text" value="${shutter.stopCommand}" onchange="updateRollershutter(${index}, 'stopCommand', this.value)"></td>
+                        <td><input type="text" value="${shutter.openCommand}" onchange="updateRollershutter(${index}, 'openCommand', this.value)" onkeyup="updateRollershutter(${index}, 'openCommand', this.value)"></td>
+                        <td><input type="text" value="${shutter.closeCommand}" onchange="updateRollershutter(${index}, 'closeCommand', this.value)" onkeyup="updateRollershutter(${index}, 'closeCommand', this.value)"></td>
+                        <td><input type="text" value="${shutter.stopCommand}" onchange="updateRollershutter(${index}, 'stopCommand', this.value)" onkeyup="updateRollershutter(${index}, 'stopCommand', this.value)"></td>
                         <td><button class="btn red" onclick="removeRollershutter(${index})"><i class="material-icons">delete</i></button></td>
                     </tr>
                 `);
@@ -92,11 +96,21 @@
                 stopCommand: `O${newId}:0:0`
             });
             updateRollershutterTable();
+
+            // Trigger onChange to enable save button
+            if (globalOnChange) {
+                globalOnChange();
+            }
         }
 
         function removeRollershutter(index) {
             rollershutters.splice(index, 1);
             updateRollershutterTable();
+
+            // Trigger onChange to enable save button
+            if (globalOnChange) {
+                globalOnChange();
+            }
         }
 
         function updateRollershutter(index, field, value) {
@@ -109,6 +123,11 @@
                 rollershutters[index].closeCommand = `O${id}:0`;
                 rollershutters[index].stopCommand = `O${id}:0:0`;
                 updateRollershutterTable();
+            }
+
+            // Trigger onChange to enable save button
+            if (globalOnChange) {
+                globalOnChange();
             }
         }
     </script>

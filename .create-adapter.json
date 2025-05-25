@@ -1,0 +1,39 @@
+{
+    "cli": true,
+    "target": "directory",
+    "adapterName": "rollershutter-arduino",
+    "title": "rollershutter-arduino",
+    "keywords": [
+        "rollershutter",
+        "arduino"
+    ],
+    "expert": "yes",
+    "features": [
+        "adapter"
+    ],
+    "adminFeatures": [],
+    "type": "iot-systems",
+    "startMode": "daemon",
+    "connectionType": "local",
+    "dataSource": "push",
+    "connectionIndicator": "yes",
+    "language": "JavaScript",
+    "nodeVersion": "20",
+    "adminUi": "html",
+    "tools": [],
+    "i18n": "words.js",
+    "releaseScript": "no",
+    "devServer": "yes",
+    "devServerPort": 18081,
+    "indentation": "Space (4)",
+    "quotes": "single",
+    "authorName": "heroalex",
+    "authorGithub": "heroalex",
+    "authorEmail": "heroalex@gmx.de",
+    "gitRemoteProtocol": "SSH",
+    "gitCommit": "no",
+    "defaultBranch": "master",
+    "license": "GNU AGPLv3",
+    "dependabot": "no",
+    "creatorVersion": "2.6.5"
+}

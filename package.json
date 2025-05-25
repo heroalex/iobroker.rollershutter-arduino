@@ -1,7 +1,7 @@
 {
   "name": "iobroker.rollershutter-arduino",
   "version": "0.0.1",
-  "description": "rollershutter-arduino",
+  "description": "Arduino-based rollershutter control via serial connection",
   "author": {
     "name": "heroalex",
     "email": "heroalex@gmx.de"
@@ -10,7 +10,10 @@
   "license": "AGPL-3.0",
   "keywords": [
     "rollershutter",
-    "arduino"
+    "arduino",
+    "serial",
+    "blinds",
+    "shutters"
   ],
   "repository": {
     "type": "git",
@@ -20,7 +23,8 @@
     "node": ">= 20"
   },
   "dependencies": {
-    "@iobroker/adapter-core": "^3.2.3"
+    "@iobroker/adapter-core": "^3.2.3",
+    "serialport": "^12.0.0"
   },
   "devDependencies": {
     "@iobroker/adapter-dev": "^1.4.0",

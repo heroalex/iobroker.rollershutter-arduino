@@ -19,9 +19,9 @@
         },
         "titleLang": {
             "en": "rollershutter-arduino",
-            "de": "Rollershutter-Herduino",
+            "de": "Rollershutter-Arduino",
             "ru": "Rollershutter-arduino",
-            "pt": "rollershutter-arbuino",
+            "pt": "rollershutter-arduino",
             "nl": "Rollershutter-Arduino",
             "fr": "rollershutter-arduino",
             "it": "Rollershutter-Arduino",
@@ -31,24 +31,27 @@
             "zh-cn": "Rollershutter-Arduino"
         },
         "desc": {
-            "en": "rollershutter-arduino",
-            "de": "Rollershutter-Herduino",
-            "ru": "Rollershutter-arduino",
-            "pt": "rollershutter-arbuino",
-            "nl": "Rollershutter-Arduino",
-            "fr": "rollershutter-arduino",
-            "it": "Rollershutter-Arduino",
-            "es": "rollershutter-arduino",
-            "pl": "RollerShutter-arduino",
-            "uk": "ролики-ардуїно",
-            "zh-cn": "Rollershutter-Arduino"
+            "en": "Arduino-based rollershutter control via serial connection",
+            "de": "Arduino-basierte Rollladensteuerung über serielle Verbindung",
+            "ru": "Управление рольставнями на основе Arduino через последовательное соединение",
+            "pt": "Controle de persiana baseado em Arduino via conexão serial",
+            "nl": "Arduino-gebaseerde rolluikbesturing via seriële verbinding",
+            "fr": "Contrôle de volet roulant basé sur Arduino via connexion série",
+            "it": "Controllo tapparelle basato su Arduino tramite connessione seriale",
+            "es": "Control de persianas basado en Arduino a través de conexión serie",
+            "pl": "Sterowanie roletami oparte na Arduino przez połączenie szeregowe",
+            "uk": "Керування ролетами на основі Arduino через послідовне з'єднання",
+            "zh-cn": "基于Arduino的卷帘控制通过串行连接"
         },
         "authors": [
             "heroalex <heroalex@gmx.de>"
         ],
         "keywords": [
             "rollershutter",
-            "arduino"
+            "arduino",
+            "serial",
+            "blinds",
+            "shutters"
         ],
         "licenseInformation": {
             "type": "free",
@@ -81,8 +84,11 @@
         ]
     },
     "native": {
-        "option1": true,
-        "option2": "42"
+        "serialPath": "/dev/ttyACM0",
+        "baudRate": 9600,
+        "openDelay": 100,
+        "reconnectInterval": 5000,
+        "rollershutters": []
     },
     "objects": [],
     "instanceObjects": [

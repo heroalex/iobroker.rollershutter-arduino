@@ -18,34 +18,36 @@
     <script type="text/javascript" src="words.js"></script>
 
     <script type="text/javascript">
-        // This will be called by the admin adapter when the settings page loads
+        let rollershutters = [];
+
         function load(settings, onChange) {
-            // example: select elements with id=key and class=value and insert value
             if (!settings) return;
+
+            // Load serial connection settings
             $('.value').each(function () {
                 var $key = $(this);
                 var id = $key.attr('id');
                 if ($key.attr('type') === 'checkbox') {
-                    // do not call onChange direct, because onChange could expect some arguments
                     $key.prop('checked', settings[id])
                         .on('change', () => onChange())
                         ;
                 } else {
-                    // do not call onChange direct, because onChange could expect some arguments
                     $key.val(settings[id])
                         .on('change', () => onChange())
                         .on('keyup', () => onChange())
                         ;
                 }
             });
+
+            // Load rollershutters
+            rollershutters = settings.rollershutters || [];
+            updateRollershutterTable();
+
             onChange(false);
-            // reinitialize all the Materialize labels on the page if you are dynamically adding inputs:
             if (M) M.updateTextFields();
         }
 
-        // This will be called by the admin adapter when the user presses the save button
         function save(callback) {
-            // example: select elements with class=value and build settings object
             var obj = {};
             $('.value').each(function () {
                 var $this = $(this);
@@ -57,7 +59,57 @@
                     obj[$this.attr('id')] = $this.val();
                 }
             });
+            obj.rollershutters = rollershutters;
             callback(obj);
+        }
+
+        function updateRollershutterTable() {
+            const tbody = $('#rollershutterTable tbody');
+            tbody.empty();
+
+            rollershutters.forEach((shutter, index) => {
+                const row = $(`
+                    <tr>
+                        <td><input type="text" value="${shutter.name}" onchange="updateRollershutter(${index}, 'name', this.value)"></td>
+                        <td><input type="number" min="1" max="16" value="${shutter.id}" onchange="updateRollershutter(${index}, 'id', this.value)"></td>
+                        <td><input type="text" value="${shutter.openCommand}" onchange="updateRollershutter(${index}, 'openCommand', this.value)"></td>
+                        <td><input type="text" value="${shutter.closeCommand}" onchange="updateRollershutter(${index}, 'closeCommand', this.value)"></td>
+                        <td><input type="text" value="${shutter.stopCommand}" onchange="updateRollershutter(${index}, 'stopCommand', this.value)"></td>
+                        <td><button class="btn red" onclick="removeRollershutter(${index})"><i class="material-icons">delete</i></button></td>
+                    </tr>
+                `);
+                tbody.append(row);
+            });
+        }
+
+        function addRollershutter() {
+            const newId = rollershutters.length > 0 ? Math.max(...rollershutters.map(s => parseInt(s.id))) + 1 : 1;
+            rollershutters.push({
+                name: `Rollershutter ${newId}`,
+                id: newId,
+                openCommand: `O${newId}:1`,
+                closeCommand: `O${newId}:0`,
+                stopCommand: `O${newId}:0:0`
+            });
+            updateRollershutterTable();
+        }
+
+        function removeRollershutter(index) {
+            rollershutters.splice(index, 1);
+            updateRollershutterTable();
+        }
+
+        function updateRollershutter(index, field, value) {
+            rollershutters[index][field] = field === 'id' ? parseInt(value) : value;
+
+            // Auto-update commands when ID changes
+            if (field === 'id') {
+                const id = parseInt(value);
+                rollershutters[index].openCommand = `O${id}:1`;
+                rollershutters[index].closeCommand = `O${id}:0`;
+                rollershutters[index].stopCommand = `O${id}:0:0`;
+                updateRollershutterTable();
+            }
         }
     </script>
 
@@ -73,18 +125,69 @@
             </div>
         </div>
 
-        <!-- Put your content here -->
-
-        <!-- For example columns with settings: -->
+        <!-- Serial Connection Settings -->
         <div class="row">
-            <div class="col s6 input-field">
-                <input type="checkbox" class="value" id="option1" />
-                <label for="option1" class="translate">option1</label>
+            <div class="col s12">
+                <h5 class="translate">serial_connection_settings</h5>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col s12 m6 input-field">
+                <input type="text" class="value" id="serialPath" />
+                <label for="serialPath" class="translate">serial_path</label>
             </div>
 
-            <div class="col s6 input-field">
-                <input type="text" class="value" id="option2" />
-                <label for="option2" class="translate">option2</label>
+            <div class="col s12 m3 input-field">
+                <input type="number" class="value" id="baudRate" min="9600" max="115200" />
+                <label for="baudRate" class="translate">baud_rate</label>
+            </div>
+
+            <div class="col s12 m3 input-field">
+                <input type="number" class="value" id="openDelay" min="50" max="1000" />
+                <label for="openDelay" class="translate">open_delay</label>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col s12 m6 input-field">
+                <input type="number" class="value" id="reconnectInterval" min="1000" max="30000" />
+                <label for="reconnectInterval" class="translate">reconnect_interval</label>
+            </div>
+        </div>
+
+        <!-- Rollershutters Configuration -->
+        <div class="row">
+            <div class="col s12">
+                <h5 class="translate">rollershutters_configuration</h5>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col s12">
+                <button class="btn green" onclick="addRollershutter()">
+                    <i class="material-icons left">add</i>
+                    <span class="translate">add_rollershutter</span>
+                </button>
+            </div>
+            </div>
+
+        <div class="row">
+            <div class="col s12">
+                <table id="rollershutterTable" class="striped">
+                    <thead>
+                        <tr>
+                            <th class="translate">name</th>
+                            <th class="translate">id</th>
+                            <th class="translate">open_command</th>
+                            <th class="translate">close_command</th>
+                            <th class="translate">stop_command</th>
+                            <th class="translate">actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
             </div>
         </div>
 

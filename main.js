@@ -48,14 +48,22 @@ class RollershutterArduino extends utils.Adapter {
         this.log.info('Creating rollershutter objects...');
 
         for (const shutter of this.config.rollershutters) {
-            const baseName = this.sanitizeName(shutter.name);
+            const objectName = this.sanitizeName(shutter.name);
 
-            // Create channel for this rollershutter
-            await this.setObjectNotExistsAsync(baseName, {
-                type: 'channel',
+            // Create single state object for this rollershutter
+            await this.setObjectNotExistsAsync(objectName, {
+                type: 'state',
                 common: {
                     name: shutter.name,
-                    role: 'blind'
+                    type: 'string',
+                    role: 'switch',
+                    read: true,
+                    write: true,
+                    states: {
+                        'open': 'Open',
+                        'close': 'Close',
+                        'stop': 'Stop'
+                    }
                 },
                 native: {
                     id: shutter.id,
@@ -65,48 +73,8 @@ class RollershutterArduino extends utils.Adapter {
                 }
             });
 
-            // Create command states
-            await this.setObjectNotExistsAsync(`${baseName}.open`, {
-                type: 'state',
-                common: {
-                    name: `${shutter.name} Open`,
-                    type: 'boolean',
-                    role: 'button',
-                    read: false,
-                    write: true,
-                    def: false
-                },
-                native: {}
-            });
-
-            await this.setObjectNotExistsAsync(`${baseName}.close`, {
-            type: 'state',
-            common: {
-                    name: `${shutter.name} Close`,
-                    type: 'boolean',
-                    role: 'button',
-                    read: false,
-                    write: true,
-                    def: false
-                },
-                native: {}
-            });
-
-            await this.setObjectNotExistsAsync(`${baseName}.stop`, {
-                type: 'state',
-                common: {
-                    name: `${shutter.name} Stop`,
-                type: 'boolean',
-                    role: 'button',
-                    read: false,
-                write: true,
-                    def: false
-            },
-                native: {}
-            });
-
             // Subscribe to state changes for this rollershutter
-            this.subscribeStates(`${baseName}.*`);
+            this.subscribeStates(objectName);
         }
     }
 
@@ -220,17 +188,16 @@ class RollershutterArduino extends utils.Adapter {
 
     async onStateChange(id, state) {
         if (state && !state.ack) {
-            const idParts = id.split('.');
-            const command = idParts[idParts.length - 1]; // 'open', 'close', or 'stop'
-            const shutterName = idParts.slice(2, -1).join('.'); // Everything between namespace and command
+            const objectName = id.split('.').pop(); // Get the object name (last part after namespace)
+            const command = state.val; // "open", "close", or "stop"
 
             // Find the corresponding rollershutter configuration
             const shutter = this.config.rollershutters.find(s =>
-                this.sanitizeName(s.name) === shutterName
+                this.sanitizeName(s.name) === objectName
             );
 
             if (!shutter) {
-                this.log.warn(`No configuration found for rollershutter: ${shutterName}`);
+                this.log.warn(`No configuration found for rollershutter: ${objectName}`);
                 return;
             }
 
@@ -246,7 +213,7 @@ class RollershutterArduino extends utils.Adapter {
                     commandToSend = shutter.stopCommand;
                     break;
                 default:
-                    this.log.warn(`Unknown command: ${command}`);
+                    this.log.warn(`Unknown command: ${command} for rollershutter: ${shutter.name}`);
                     return;
             }
 
@@ -254,7 +221,7 @@ class RollershutterArduino extends utils.Adapter {
             const success = await this.sendCommand(commandToSend);
 
             // Acknowledge the state
-            await this.setState(id, false, true);
+            await this.setState(id, command, true);
         }
     }
 

@@ -1,6 +1,6 @@
 {
   "name": "iobroker.rollershutter-arduino",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Arduino-based rollershutter control via serial connection",
   "author": {
     "name": "heroalex",

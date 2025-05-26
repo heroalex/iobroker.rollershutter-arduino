@@ -91,7 +91,7 @@ class RollershutterArduino extends utils.Adapter {
         // Create global automation settings
         await this.createGlobalAutomationObjects();
 
-        // Create individual override objects for each shutter
+        // Create individual automation objects for each shutter
         for (const shutter of this.config.rollershutters) {
             await this.createIndividualAutomationObjects(shutter);
         }
@@ -177,21 +177,7 @@ class RollershutterArduino extends utils.Adapter {
     async createIndividualAutomationObjects(shutter) {
         const objectName = this.sanitizeName(shutter.name);
 
-        // Individual automation override enabled/disabled
-        await this.setObjectNotExistsAsync(`${objectName}_automation_override`, {
-            type: 'state',
-            common: {
-                name: `${shutter.name} - Override Global Settings`,
-                type: 'boolean',
-                role: 'switch',
-                read: true,
-                write: true,
-                def: false
-            },
-            native: {}
-        });
-
-        // Individual automation enabled/disabled (only used if override is enabled)
+        // Individual automation enabled/disabled
         await this.setObjectNotExistsAsync(`${objectName}_automation_enabled`, {
             type: 'state',
             common: {
@@ -214,7 +200,7 @@ class RollershutterArduino extends utils.Adapter {
                 role: 'value.time',
                 read: true,
                 write: true,
-                def: '07:00'
+                def: ''
             },
             native: {}
         });
@@ -227,7 +213,7 @@ class RollershutterArduino extends utils.Adapter {
                 role: 'value.time',
                 read: true,
                 write: true,
-                def: '21:00'
+                def: ''
             },
             native: {}
         });
@@ -241,7 +227,7 @@ class RollershutterArduino extends utils.Adapter {
                 role: 'value.time',
                 read: true,
                 write: true,
-                def: '09:30'
+                def: ''
             },
             native: {}
         });
@@ -254,13 +240,12 @@ class RollershutterArduino extends utils.Adapter {
                 role: 'value.time',
                 read: true,
                 write: true,
-                def: '21:00'
+                def: ''
             },
             native: {}
         });
 
         // Subscribe to individual automation state changes
-        this.subscribeStates(`${objectName}_automation_override`);
         this.subscribeStates(`${objectName}_automation_enabled`);
         this.subscribeStates(`${objectName}_workday_open_time`);
         this.subscribeStates(`${objectName}_workday_close_time`);
@@ -298,43 +283,88 @@ class RollershutterArduino extends utils.Adapter {
 
     async getEffectiveAutomationSettings(shutterObjectName) {
         try {
-            // Check if this shutter uses individual override
-            const overrideState = await this.getStateAsync(`${shutterObjectName}_automation_override`);
-            const useOverride = overrideState && overrideState.val;
+            // First check if global automation is enabled
+            const globalEnabledState = await this.getStateAsync('global_automation_enabled');
+            const globalEnabled = globalEnabledState ? globalEnabledState.val : false;
 
-            if (useOverride) {
-                // Use individual settings
-                const enabled = await this.getStateAsync(`${shutterObjectName}_automation_enabled`);
-                const workdayOpen = await this.getStateAsync(`${shutterObjectName}_workday_open_time`);
-                const workdayClose = await this.getStateAsync(`${shutterObjectName}_workday_close_time`);
-                const weekendOpen = await this.getStateAsync(`${shutterObjectName}_weekend_open_time`);
-                const weekendClose = await this.getStateAsync(`${shutterObjectName}_weekend_close_time`);
-
+            if (!globalEnabled) {
                 return {
-                    enabled: enabled ? enabled.val : false,
-                    workdayOpenTime: workdayOpen ? workdayOpen.val : '07:00',
-                    workdayCloseTime: workdayClose ? workdayClose.val : '22:00',
-                    weekendOpenTime: weekendOpen ? weekendOpen.val : '08:00',
-                    weekendCloseTime: weekendClose ? weekendClose.val : '23:00',
-                    source: 'individual'
-                };
-            } else {
-                // Use global settings
-                const enabled = await this.getStateAsync('global_automation_enabled');
-                const workdayOpen = await this.getStateAsync('global_workday_open_time');
-                const workdayClose = await this.getStateAsync('global_workday_close_time');
-                const weekendOpen = await this.getStateAsync('global_weekend_open_time');
-                const weekendClose = await this.getStateAsync('global_weekend_close_time');
-
-                return {
-                    enabled: enabled ? enabled.val : false,
-                    workdayOpenTime: workdayOpen ? workdayOpen.val : '07:00',
-                    workdayCloseTime: workdayClose ? workdayClose.val : '22:00',
-                    weekendOpenTime: weekendOpen ? weekendOpen.val : '08:00',
-                    weekendCloseTime: weekendClose ? weekendClose.val : '23:00',
-                    source: 'global'
+                    enabled: false,
+                    workdayOpenTime: '',
+                    workdayCloseTime: '',
+                    weekendOpenTime: '',
+                    weekendCloseTime: '',
+                    source: 'global_disabled'
                 };
             }
+
+            // Check if individual automation is enabled for this shutter
+            const individualEnabledState = await this.getStateAsync(`${shutterObjectName}_automation_enabled`);
+            const individualEnabled = individualEnabledState ? individualEnabledState.val : true;
+
+            if (!individualEnabled) {
+                return {
+                    enabled: false,
+                    workdayOpenTime: '',
+                    workdayCloseTime: '',
+                    weekendOpenTime: '',
+                    weekendCloseTime: '',
+                    source: 'individual_disabled'
+                };
+            }
+
+            // Get global times as fallback
+            const globalWorkdayOpen = await this.getStateAsync('global_workday_open_time');
+            const globalWorkdayClose = await this.getStateAsync('global_workday_close_time');
+            const globalWeekendOpen = await this.getStateAsync('global_weekend_open_time');
+            const globalWeekendClose = await this.getStateAsync('global_weekend_close_time');
+
+            const globalTimes = {
+                workdayOpen: globalWorkdayOpen ? globalWorkdayOpen.val : '07:00',
+                workdayClose: globalWorkdayClose ? globalWorkdayClose.val : '22:00',
+                weekendOpen: globalWeekendOpen ? globalWeekendOpen.val : '09:30',
+                weekendClose: globalWeekendClose ? globalWeekendClose.val : '22:00'
+            };
+
+            // Get individual times
+            const individualWorkdayOpen = await this.getStateAsync(`${shutterObjectName}_workday_open_time`);
+            const individualWorkdayClose = await this.getStateAsync(`${shutterObjectName}_workday_close_time`);
+            const individualWeekendOpen = await this.getStateAsync(`${shutterObjectName}_weekend_open_time`);
+            const individualWeekendClose = await this.getStateAsync(`${shutterObjectName}_weekend_close_time`);
+
+            // Use individual times if set and valid, otherwise fall back to global
+            const workdayOpenTime = this.getEffectiveTime(
+                individualWorkdayOpen ? individualWorkdayOpen.val : '',
+                globalTimes.workdayOpen
+            );
+            const workdayCloseTime = this.getEffectiveTime(
+                individualWorkdayClose ? individualWorkdayClose.val : '',
+                globalTimes.workdayClose
+            );
+            const weekendOpenTime = this.getEffectiveTime(
+                individualWeekendOpen ? individualWeekendOpen.val : '',
+                globalTimes.weekendOpen
+            );
+            const weekendCloseTime = this.getEffectiveTime(
+                individualWeekendClose ? individualWeekendClose.val : '',
+                globalTimes.weekendClose
+            );
+
+            // Determine source for logging
+            const hasIndividualTimes =
+                (individualWorkdayOpen && individualWorkdayOpen.val && this.isValidTimeFormat(individualWorkdayOpen.val)) ||
+                (individualWorkdayClose && individualWorkdayClose.val && this.isValidTimeFormat(individualWorkdayClose.val)) ||
+                (individualWeekendOpen && individualWeekendOpen.val && this.isValidTimeFormat(individualWeekendOpen.val)) ||
+                (individualWeekendClose && individualWeekendClose.val && this.isValidTimeFormat(individualWeekendClose.val));
+
+                return {
+                enabled: true,
+                workdayOpenTime,
+                workdayCloseTime,
+                weekendOpenTime,
+                weekendCloseTime,
+                source: hasIndividualTimes ? 'mixed' : 'global'
+                };
         } catch (error) {
             this.log.error(`Error getting automation settings for ${shutterObjectName}: ${error.message}`);
             // Return safe defaults
@@ -342,11 +372,19 @@ class RollershutterArduino extends utils.Adapter {
                 enabled: false,
                 workdayOpenTime: '07:00',
                 workdayCloseTime: '22:00',
-                weekendOpenTime: '08:00',
-                weekendCloseTime: '23:00',
+                weekendOpenTime: '09:30',
+                weekendCloseTime: '22:00',
                 source: 'default'
             };
         }
+    }
+
+    getEffectiveTime(individualTime, globalTime) {
+        // Use individual time if it's set and valid, otherwise use global time
+        if (individualTime && this.isValidTimeFormat(individualTime)) {
+            return individualTime;
+        }
+        return globalTime;
     }
 
     async checkAutomationSchedule() {
@@ -404,6 +442,9 @@ class RollershutterArduino extends utils.Adapter {
     }
 
     isValidTimeFormat(timeString) {
+        if (!timeString || timeString.trim() === '') {
+            return false;
+        }
         const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
         return timeRegex.test(timeString);
     }

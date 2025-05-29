@@ -63,7 +63,7 @@ class RollershutterArduino extends utils.Adapter {
         this.log.info('Creating super global automation objects...');
 
         // Super global automation enabled/disabled
-        await this.setObjectNotExistsAsync('system.adapter.rollershutter-arduino.super_global_automation_enabled', {
+        await this.setObjectNotExistsAsync('super_global_automation_enabled', {
             type: 'state',
             common: {
                 name: 'Super Global Automation Enabled',
@@ -77,7 +77,7 @@ class RollershutterArduino extends utils.Adapter {
         });
 
         // Super global workday schedule
-        await this.setObjectNotExistsAsync('system.adapter.rollershutter-arduino.super_global_workday_open_time', {
+        await this.setObjectNotExistsAsync('super_global_workday_open_time', {
             type: 'state',
             common: {
                 name: 'Super Global Workday Open Time',
@@ -90,7 +90,7 @@ class RollershutterArduino extends utils.Adapter {
             native: {}
         });
 
-        await this.setObjectNotExistsAsync('system.adapter.rollershutter-arduino.super_global_workday_close_time', {
+        await this.setObjectNotExistsAsync('super_global_workday_close_time', {
             type: 'state',
             common: {
                 name: 'Super Global Workday Close Time',
@@ -104,7 +104,7 @@ class RollershutterArduino extends utils.Adapter {
         });
 
         // Super global weekend schedule
-        await this.setObjectNotExistsAsync('system.adapter.rollershutter-arduino.super_global_weekend_open_time', {
+        await this.setObjectNotExistsAsync('super_global_weekend_open_time', {
             type: 'state',
             common: {
                 name: 'Super Global Weekend Open Time',
@@ -117,7 +117,7 @@ class RollershutterArduino extends utils.Adapter {
             native: {}
         });
 
-        await this.setObjectNotExistsAsync('system.adapter.rollershutter-arduino.super_global_weekend_close_time', {
+        await this.setObjectNotExistsAsync('super_global_weekend_close_time', {
             type: 'state',
             common: {
                 name: 'Super Global Weekend Close Time',
@@ -129,26 +129,29 @@ class RollershutterArduino extends utils.Adapter {
             },
             native: {}
         });
+
+        // Subscribe to super global state changes
+        this.subscribeStates('super_global_*');
     }
 
     async subscribeSuperGlobalStates() {
-        // Subscribe to super global states using foreign state subscription
-        this.subscribeForeignStates('system.adapter.rollershutter-arduino.super_global_*');
+        // Subscribe to super global states from instance 0
+        this.subscribeForeignStates('rollershutter-arduino.0.super_global_*');
     }
 
     async propagateSuperGlobalToGlobal() {
         try {
             this.log.info('Propagating super global settings to global settings...');
 
-            // Get all super global values
-            const superGlobalStates = await this.getForeignStatesAsync('system.adapter.rollershutter-arduino.super_global_*');
+            // Get all super global values from instance 0
+            const superGlobalStates = await this.getForeignStatesAsync('rollershutter-arduino.0.super_global_*');
 
             const mappings = {
-                'system.adapter.rollershutter-arduino.super_global_automation_enabled': 'global_automation_enabled',
-                'system.adapter.rollershutter-arduino.super_global_workday_open_time': 'global_workday_open_time',
-                'system.adapter.rollershutter-arduino.super_global_workday_close_time': 'global_workday_close_time',
-                'system.adapter.rollershutter-arduino.super_global_weekend_open_time': 'global_weekend_open_time',
-                'system.adapter.rollershutter-arduino.super_global_weekend_close_time': 'global_weekend_close_time'
+                'rollershutter-arduino.0.super_global_automation_enabled': 'global_automation_enabled',
+                'rollershutter-arduino.0.super_global_workday_open_time': 'global_workday_open_time',
+                'rollershutter-arduino.0.super_global_workday_close_time': 'global_workday_close_time',
+                'rollershutter-arduino.0.super_global_weekend_open_time': 'global_weekend_open_time',
+                'rollershutter-arduino.0.super_global_weekend_close_time': 'global_weekend_close_time'
             };
 
             // Propagate each super global setting to the corresponding global setting
@@ -173,15 +176,15 @@ class RollershutterArduino extends utils.Adapter {
             // Get all rollershutter-arduino adapter instances
             const instances = await this.getForeignObjectsAsync('system.adapter.rollershutter-arduino.*', 'instance');
 
-            // Get super global values
-            const superGlobalStates = await this.getForeignStatesAsync('system.adapter.rollershutter-arduino.super_global_*');
+            // Get super global values from instance 0
+            const superGlobalStates = await this.getForeignStatesAsync('rollershutter-arduino.0.super_global_*');
 
             const mappings = {
-                'system.adapter.rollershutter-arduino.super_global_automation_enabled': 'global_automation_enabled',
-                'system.adapter.rollershutter-arduino.super_global_workday_open_time': 'global_workday_open_time',
-                'system.adapter.rollershutter-arduino.super_global_workday_close_time': 'global_workday_close_time',
-                'system.adapter.rollershutter-arduino.super_global_weekend_open_time': 'global_weekend_open_time',
-                'system.adapter.rollershutter-arduino.super_global_weekend_close_time': 'global_weekend_close_time'
+                'rollershutter-arduino.0.super_global_automation_enabled': 'global_automation_enabled',
+                'rollershutter-arduino.0.super_global_workday_open_time': 'global_workday_open_time',
+                'rollershutter-arduino.0.super_global_workday_close_time': 'global_workday_close_time',
+                'rollershutter-arduino.0.super_global_weekend_open_time': 'global_weekend_open_time',
+                'rollershutter-arduino.0.super_global_weekend_close_time': 'global_weekend_close_time'
             };
 
             // Propagate to each instance
@@ -192,8 +195,19 @@ class RollershutterArduino extends utils.Adapter {
                     const superGlobalState = superGlobalStates[superGlobalId];
                     if (superGlobalState && superGlobalState.val !== null && superGlobalState.val !== undefined) {
                         const targetStateId = `rollershutter-arduino.${instanceNumber}.${globalStateName}`;
+
+                        // Check if target state exists before trying to set it
+                        try {
+                            const targetObject = await this.getForeignObjectAsync(targetStateId);
+                            if (targetObject) {
                         await this.setForeignStateAsync(targetStateId, superGlobalState.val, true);
                         this.log.debug(`Propagated ${superGlobalId} (${superGlobalState.val}) to ${targetStateId}`);
+                            } else {
+                                this.log.debug(`Target state ${targetStateId} does not exist, skipping`);
+                            }
+                        } catch (setError) {
+                            this.log.warn(`Could not set ${targetStateId}: ${setError.message}`);
+                        }
                     }
                 }
             }
@@ -736,18 +750,25 @@ class RollershutterArduino extends utils.Adapter {
 
     async onStateChange(id, state) {
         if (state && !state.ack) {
-            // Handle super global state changes
-            if (id.startsWith('system.adapter.rollershutter-arduino.super_global_')) {
-                this.log.info(`Super global setting changed: ${id} = ${state.val}`);
-                await this.setForeignStateAsync(id, state.val, true);
+            const parts = id.split('.');
+            const objectName = parts.pop(); // Get the object name (last part after namespace)
+
+            // Handle super global state changes (only for instance 0)
+            if (this.instance === 0 && objectName.startsWith('super_global_')) {
+                this.log.info(`Super global setting changed: ${objectName} = ${state.val}`);
+                await this.setState(id, state.val, true);
 
                 // Propagate to all instances
                 await this.propagateSuperGlobalToAllInstances();
                 return;
             }
 
-            const parts = id.split('.');
-            const objectName = parts.pop(); // Get the object name (last part after namespace)
+            // Handle foreign super global state changes (for other instances)
+            if (id.startsWith('rollershutter-arduino.0.super_global_')) {
+                this.log.info(`Super global setting changed externally: ${id} = ${state.val}`);
+                await this.propagateSuperGlobalToGlobal();
+                return;
+            }
 
             // Handle automation configuration changes
             if (objectName.startsWith('global_') ||
@@ -793,16 +814,6 @@ class RollershutterArduino extends utils.Adapter {
 
             // Acknowledge the state
             await this.setState(id, command, true);
-        }
-    }
-
-    async onForeignStateChange(id, state) {
-        // Handle foreign state changes (super global states)
-        if (state && !state.ack && id.startsWith('system.adapter.rollershutter-arduino.super_global_')) {
-            this.log.info(`Super global setting changed externally: ${id} = ${state.val}`);
-
-            // Propagate to all instances
-            await this.propagateSuperGlobalToAllInstances();
         }
     }
 
